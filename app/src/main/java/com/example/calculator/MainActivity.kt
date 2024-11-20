@@ -1,25 +1,27 @@
 package com.example.calculator
 
 import android.os.Bundle
+import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.calculator.ui.theme.CalculatorTheme
-import android.view.HapticFeedbackConstants
-import androidx.compose.ui.platform.LocalView
+import kotlin.math.abs
 
 data class CalculationHistoryItem(
     val expression: String,
@@ -74,10 +76,13 @@ fun CalculatorButton(
 }
 
 private fun formatResult(number: Double): String {
-    return if (number % 1.0 == 0.0) {
-        number.toLong().toString()
-    } else {
-        "%.8f".format(number).trimEnd('0').trimEnd('.')
+    return when {
+        number == 0.0 -> "0"
+        abs(number) < 0.00000001 || abs(number) > 99999999 -> {
+            "%.2E".format(number)
+        }
+        number % 1.0 == 0.0 -> number.toLong().toString()
+        else -> "%.8f".format(number).trimEnd('0').trimEnd('.')
     }
 }
 
@@ -91,6 +96,8 @@ fun Calculator() {
     var showError by remember { mutableStateOf(false) }
     var history by remember { mutableStateOf(listOf<CalculationHistoryItem>()) }
     var showHistory by remember { mutableStateOf(false) }
+    var memory by remember { mutableStateOf(0.0) }
+    var showMemory by remember { mutableStateOf(false) }
 
     fun calculateResult() {
         if (firstNumber.isNotEmpty() && display.isNotEmpty()) {
@@ -117,6 +124,16 @@ fun Calculator() {
             } catch (e: Exception) {
                 display = "Error"
                 showError = true
+            }
+        }
+    }
+
+    fun backspace() {
+        if (!showError && display != "0") {
+            display = if (display.length == 1 || (display.length == 2 && display.startsWith("-"))) {
+                "0"
+            } else {
+                display.dropLast(1)
             }
         }
     }
@@ -186,30 +203,19 @@ fun Calculator() {
                 )
             )
             CalculatorButton(
-                text = "±",
-                onClick = { 
-                    if (!showError) {
-                        display = if (display.startsWith("-")) display.drop(1) else "-$display"
-                    }
-                },
+                text = "⌫",  // Backspace
+                onClick = { backspace() },
                 modifier = Modifier.weight(1f),
                 colors = operatorColors
             )
             CalculatorButton(
-                text = "%",
-                onClick = { 
-                    if (!showError && display != "0") {
-                        try {
-                            val number = display.toDouble()
-                            display = formatResult(number / 100)
-                        } catch (e: Exception) {
-                            display = "Error"
-                            showError = true
-                        }
-                    }
-                },
+                text = "M",  // Memory
+                onClick = { showMemory = !showMemory },
                 modifier = Modifier.weight(1f),
-                colors = operatorColors
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
             CalculatorButton(
                 text = "÷",
@@ -222,6 +228,138 @@ fun Calculator() {
                 },
                 modifier = Modifier.weight(1f),
                 colors = operatorColors
+            )
+        }
+
+        // History Dialog
+        if (showHistory) {
+            AlertDialog(
+                onDismissRequest = { showHistory = false },
+                title = { Text("Calculation History") },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 8.dp)
+                    ) {
+                        if (history.isEmpty()) {
+                            Text(
+                                text = "No calculations yet",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        } else {
+                            history.asReversed().forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = item.expression,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                    Text(
+                                        text = "= ${item.result}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Divider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { 
+                            history = emptyList()
+                            showHistory = false 
+                        }
+                    ) {
+                        Text("Clear History")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showHistory = false }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
+
+        // Memory Dialog
+        if (showMemory) {
+            AlertDialog(
+                onDismissRequest = { showMemory = false },
+                title = { Text("Memory Operations") },
+                text = {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Current Memory: ${formatResult(memory)}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        memory += display.toDouble()
+                                        showMemory = false
+                                    } catch (e: Exception) {
+                                        // Handle error
+                                    }
+                                }
+                            ) {
+                                Text("M+")
+                            }
+                            Button(
+                                onClick = {
+                                    try {
+                                        memory -= display.toDouble()
+                                        showMemory = false
+                                    } catch (e: Exception) {
+                                        // Handle error
+                                    }
+                                }
+                            ) {
+                                Text("M-")
+                            }
+                            Button(
+                                onClick = {
+                                    display = formatResult(memory)
+                                    newNumber = true
+                                    showMemory = false
+                                }
+                            ) {
+                                Text("MR")
+                            }
+                            Button(
+                                onClick = {
+                                    memory = 0.0
+                                    showMemory = false
+                                }
+                            ) {
+                                Text("MC")
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showMemory = false }) {
+                        Text("Close")
+                    }
+                }
             )
         }
 
@@ -293,6 +431,7 @@ fun Calculator() {
                 onClick = { 
                     if (!showError && !display.contains(".")) {
                         display = if (display == "0") "0." else "$display."
+                        newNumber = false
                     }
                 },
                 modifier = Modifier.weight(1f),
