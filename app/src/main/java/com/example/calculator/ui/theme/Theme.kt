@@ -11,24 +11,35 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.graphics.ColorUtils
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF4CAF50),     // Green
-    secondary = Color(0xFF2C2C2C),   // Dark Gray for number buttons
-    tertiary = Color(0xFF3F3F3F),    // Slightly lighter gray for operators
-    background = Color(0xFF121212),  // Dark background
-    surface = Color(0xFF121212),
-    error = Color(0xFFCF6679)        // Red for clear button
+    primary = Color(0xFF00C853),      // Vibrant Green
+    secondary = Color(0xFF2D2D2D),    // Dark Gray
+    tertiary = Color(0xFF404040),     // Medium Gray
+    background = Color(0xFF121212),   // Dark Background
+    surface = Color(0xFF1E1E1E),      // Slightly Lighter Background
+    error = Color(0xFFCF6679),        // Error Red
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    onError = Color.Black
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF4CAF50),     // Green
-    secondary = Color(0xFFE8E8E8),   // Light Gray for number buttons
-    tertiary = Color(0xFFD3D3D3),    // Slightly darker gray for operators
-    background = Color(0xFFFAFAFA),  // Light background
-    surface = Color(0xFFFAFAFA),
-    error = Color(0xFFB00020)        // Red for clear button
+    primary = Color(0xFF00B049),      // Slightly Darker Green
+    secondary = Color(0xFFF5F5F5),    // Light Gray
+    tertiary = Color(0xFFE0E0E0),     // Medium Gray
+    background = Color.White,         // White Background
+    surface = Color(0xFFFAFAFA),      // Slightly Off-White
+    error = Color(0xFFB00020),        // Error Red
+    onPrimary = Color.White,
+    onSecondary = Color(0xFF1A1A1A),  // Dark Text
+    onTertiary = Color(0xFF1A1A1A),   // Dark Text
+    onBackground = Color(0xFF1A1A1A), // Dark Text
+    onSurface = Color(0xFF1A1A1A),    // Dark Text
+    onError = Color.White
 )
 
 @Composable

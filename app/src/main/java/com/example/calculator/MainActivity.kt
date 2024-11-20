@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.calculator.ui.theme.CalculatorTheme
 import kotlin.math.abs
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 
 data class CalculationHistoryItem(
     val expression: String,
@@ -53,6 +57,13 @@ fun CalculatorButton(
     colors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
     val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        label = "scale"
+    )
     
     Button(
         onClick = {
@@ -61,16 +72,23 @@ fun CalculatorButton(
         },
         modifier = modifier
             .padding(4.dp)
-            .clip(CircleShape),
+            .clip(CircleShape)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         colors = colors,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 6.dp,
-            pressedElevation = 2.dp
-        )
+            pressedElevation = 2.dp,
+            hoveredElevation = 8.dp
+        ),
+        interactionSource = interactionSource
     ) {
         Text(
             text = text,
-            fontSize = 24.sp
+            fontSize = 24.sp,
+            style = MaterialTheme.typography.titleLarge
         )
     }
 }
@@ -149,28 +167,58 @@ fun Calculator() {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(2f)
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp)
+                .padding(horizontal = 8.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
-            AnimatedContent(
-                targetState = display,
-                transitionSpec = {
-                    (slideInVertically { height -> height } + fadeIn()) with 
-                    (slideOutVertically { height -> -height } + fadeOut())
-                },
-                label = "display"
-            ) { targetDisplay ->
+            // Memory indicator
+            if (memory != 0.0) {
                 Text(
-                    text = targetDisplay,
-                    style = MaterialTheme.typography.displayLarge,
-                    textAlign = TextAlign.End,
-                    color = if (showError) 
-                        MaterialTheme.colorScheme.error 
-                    else MaterialTheme.colorScheme.onSurface,
-                    fontSize = 48.sp,
-                    maxLines = 1,
-                    modifier = Modifier.animateContentSize()
+                    text = "M",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
                 )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                // Operation display
+                if (firstNumber.isNotEmpty() && operation.isNotEmpty()) {
+                    Text(
+                        text = "$firstNumber $operation",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                // Main display
+                AnimatedContent(
+                    targetState = display,
+                    transitionSpec = {
+                        (slideInVertically { height -> height } + fadeIn()) with 
+                        (slideOutVertically { height -> -height } + fadeOut())
+                    },
+                    label = "display"
+                ) { targetDisplay ->
+                    Text(
+                        text = targetDisplay,
+                        style = MaterialTheme.typography.displayLarge,
+                        textAlign = TextAlign.End,
+                        color = if (showError) 
+                            MaterialTheme.colorScheme.error 
+                        else MaterialTheme.colorScheme.onSurface,
+                        fontSize = 48.sp,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .animateContentSize()
+                            .padding(vertical = 8.dp)
+                    )
+                }
             }
         }
 
